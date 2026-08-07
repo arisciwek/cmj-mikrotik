@@ -78,3 +78,24 @@ menghindari ambigu dengan mDNS/Bonjour yang dipakai virtualmin di laptop).
 
 - Hapus 3 entry lama: `router.office.cmj.local`, `gateway.office.cmj.local`, `ap.office.cmj.local`
 - Verifikasi client setelah 1 hari lease (suffix baru aktif)
+
+## Temuan: Urutan DNS penting (2026-08-07 malam, via WiFi Huawei)
+
+- Client WiFi Huawei dapat DNS dari ONT = 192.168.18.1 (Huawei, ISP-locked,
+  field DHCP DNS di web UI disable — template ISP mengunci).
+- Solusi: set DNS manual di perangkat admin → 192.168.18.12 (MikroTik).
+- PENTING — urutan DNS menentukan hasil:
+  - `1.1.1.1, 8.8.8.8, 192.168.18.12` → virtualmin.lan TIDAK bisa
+    (1.1.1.1 jawab NXDOMAIN cepat untuk .lan, client berhenti di situ)
+  - `192.168.18.12, 1.1.1.1, 8.8.8.8` → virtualmin.lan BISA
+- Rekomendasi: di WiFi Huawei, DNS manual = `192.168.18.12` SAJA
+  (MikroTik sudah forward internet ke 1.1.1.1/8.8.8.8; .lan selalu resolve).
+
+## Perubahan tambahan di router (2026-08-07 malam)
+
+- Firewall input: tambah rule izinkan query DNS (udp+tcp 53) dari
+  `192.168.18.0/24` (WiFi Huawei/admin) — sebelumnya hanya 192.168.10.0/24.
+  - Rule: `CMJ-allow-dns-wan-admin` (udp & tcp), posisi di atas DROP.
+  - Ini memungkinkan client WiFi Huawei query DNS MikroTik untuk domain .lan.
+- Verifikasi: resolve .lan dari segmen WAN (query ke 18.12) berhasil
+  (nextcloud.lan, virtualmin.lan, samba.lan → IP benar).
