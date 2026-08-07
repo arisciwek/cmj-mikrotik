@@ -388,3 +388,15 @@ bisa!. terima kasih
 - Kesimpulan: loss = keterbatasan jangkauan radio WiFi TP-Link consumer (2.4GHz, antena internal). BUKAN dua kabel (sudah dicoret: enp9s0f0 down tapi loss tetap), BUKAN router/upstream (0% loss dari router), BUKAN konfigurasi.
 - Implikasi: infrastruktur (DNS, IP conflict, DoH, NAT) sudah BERES. Kalau user butuh jangkauan lebih luas → keputusan hardware (AP tambahan / AP lebih baik / reposisi AP), bukan software.
 - Status kabel: nic1 = jalur LAN utama (vmbr1 bridge-ports nic1, MASIH DIPAKAI, jangan dicabut). enp9s0f0 = kabel kedua, admin DOWN (tidak meneruskan data, tidak ada loop; boleh dicabut fisik kalau mau).
+
+## EKSEKUSI Opsi A KABEL — DONE (2026-08-07 malam, Jumat)
+- vmbr1 dipindah dari nic1 → enp9s0f0 (Intel, kabel ke TP-Link). Live apply: enp9s0f0 up + master vmbr1, nic1 nomaster + down.
+- /etc/network/interfaces diupdate permanen: `bridge-ports enp9s0f0` (backup: interfaces.bak-20260807-*). IP vmbr1 tetap 192.168.10.250.
+- INSIDEN transisi: nic1 sempat balik carrier=1 (kabel masih nyolok) + masih di bridge → loop L2 sesaat (broadcast storm, router unreachable). Dipulihkan: nic1 dilepas dari bridge + down. Pelajaran: sebelum lepas port lama, pastikan tidak ada kabel aktif di port itu (carrier check dulu), atau lepas dari bridge dulu lalu down.
+- Verifikasi pasca: bridge = enp9s0f0 + tap102i1 (satu uplink); AP 10/10; router LAN 20/20 (0% loss, stabil); DNS 4 domain resolve (UDP+TCP); router→8.8.8.8 10/10.
+- FISIK: TP-Link port 1 → enp9s0f0 (aktif). Kabel nic1 boleh dicabut dari TP-Link (port down, tidak meneruskan; dicabut fisik lebih aman anti-loop).
+
+## Task 3 (DHCP reservation AP) — SKIP dengan alasan (2026-08-07 malam)
+- Cek `/ip dhcp-server lease print`: AP 192.168.10.2 TIDAK ada di lease table → AP pakai IP STATIS (DHCP off, IP manual di AP).
+- Pool DHCP = 192.168.10.100-199, jadi .2 di luar pool → tidak akan pernah di-assign ke device lain. Reservation TIDAK diperlukan.
+- Kalau di masa depan AP diubah ke DHCP, baru tambah reservation (MAC c0:3a:55:ad:5f:c4 → .2).
