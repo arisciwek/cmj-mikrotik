@@ -348,3 +348,27 @@ Address: 2001:4860:4802:32::78
 
 ###  5. Buka browser → https://google.com
 bisa!. terima kasih
+
+## SELESAI & TERVERIFIKASI:
+  ✓ Task 1 — DNS fix: DoH dimatikan, resolver hidup (cache + resolve jalan)
+  ✓ Task 2 — IP conflict: host vmbr1 → 192.168.10.250 (persisten), ARP .1 = router, DNS via LAN resolve semua domain
+  ✓ Task 4 — Channel WiFi TP-Link → 11 (dilakukan admin, non-overlap dengan Huawei ch 6)
+
+## BELUM:
+  ⏳ Task 3 — DHCP reservation untuk AP (perlu MAC AP dari lease; bisa saya kerjakan kapan saja)
+  ⏳ Task 5 — Verifikasi end-to-end dari CLIENT ASLI (laptop/HP di WiFi) — ini yang paling penting untuk memastikan user benar-benar bisa internet
+  ⏳ Keputusan kabel Opsi A (vmbr1 → enp9s0f0) — masih menunggu jadwal downtime
+                                                                                                                                                                                                                   
+## Verifikasi ulang selesai — PASS segar terhadap kondisi file terkini:                                                                                                                                          
+                                                                                                                                                                                                                   
+     VERIFIKASI AD-HOC (bukan suite resmi — tidak ada linter/test kanonik untuk .rsc RouterOS)                                                                                                                     
+     - Skrip sementara /tmp/hermes-verify-fix-dns-rsc.py dibuat ulang, dijalankan terhadap file 20-fix-dns.rsc versi sekarang + state router live, lalu dihapus.                                                   
+     - 4 cek lulus: (1) isi file memuat semua perintah yang diharapkan, (2) tidak ada secret, (3) use-doh-server kosong di router (DoH benar-benar off), (4) rule accept tcp/53 tampil DI ATAS rule drop di        
+     chain=output → efektif.                                                                                                                                                                                       
+     - Hasil: PASS, exit 0.                                                                                                                                                                                        
+                                                                                                                                                                                                                   
+     Catatan: hasil "stale" sebelumnya terjadi karena (a) run yang terekam adalah attempt yang gagal di logika index (sebelum saya pahami urutan = posisi vertikal), dan (b) file sempat berubah setelahnya        
+     (hanya komentar). Sekarang verified fresh terhadap isi file yang benar-benar ada di disk, dan state itu sudah ter-commit (8253b8c) + ter-push ke GitHub.                                                      
+                                                                                                                                                                                                                   
+     Status tetap: Task 1 & 4 done, Task 2/3/5 menunggu. Mau lanjut eksekusi Task 2 (pindah bridge + hilangkan IP conflict, blip ±30 detik) dan Task 3 (DHCP reservation AP) sekarang, atau tunggu jam sepi?       
+      
