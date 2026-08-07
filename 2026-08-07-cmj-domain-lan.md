@@ -1,7 +1,7 @@
 # CMJ Domain Lokal (.lan) — Plan
 
 Tanggal: 2026-08-07 (Jumat malam)
-Status: MENUNGGU APPROVAL
+Status: DONE (dieksekusi 2026-08-07 malam, terverifikasi)
 Repositori: github.com/arisciwek/cmj-mikrotik
 
 ## Goal
@@ -61,3 +61,20 @@ menghindari ambigu dengan mDNS/Bonjour yang dipakai virtualmin di laptop).
 - Hapus entry lama: `router.office.cmj.local`, `gateway.office.cmj.local`,
   `ap.office.cmj.local` (sudah digantikan router.lan / ap.lan).
 - Verifikasi client setelah 1 hari lease (suffix baru aktif).
+
+## Log Eksekusi (2026-08-07 malam)
+
+1. Backup config: `/system backup save name=before-domain-lan` → "Configuration backup saved" ✓
+2. Tambah 8 DNS static (verifikasi `/ip dns static print`):
+   - nextcloud.lan → 192.168.18.10, samba.lan → 192.168.18.11, mikrotik.lan → 192.168.18.12,
+     virtualmin.lan → 192.168.18.13, 9router.lan → 192.168.18.14, pve.lan → 192.168.18.9,
+     ap.lan → 192.168.10.2, router.lan → 192.168.10.1
+3. Ubah DHCP option: domain-search (119) dan domain-name (15) → `'lan'` ✓
+4. Verifikasi resolve dari LAN (via 192.168.10.1): semua 8 nama resolve ke IP yang benar ✓
+   (WAN side 18.12 timeout = normal, router hanya layani DNS untuk LAN 192.168.10.0/24)
+5. Client butuh renew DHCP (≤24 jam, lease 1d) untuk dapat suffix search `lan`.
+
+## Follow-up Senin (belum dikerjakan)
+
+- Hapus 3 entry lama: `router.office.cmj.local`, `gateway.office.cmj.local`, `ap.office.cmj.local`
+- Verifikasi client setelah 1 hari lease (suffix baru aktif)
