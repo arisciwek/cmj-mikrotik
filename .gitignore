@@ -15,6 +15,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
-*~*.backup
+*~
 
+# Backup binary RouterOS (berisi kredensial, jangan pernah di-commit)
 *.backup
