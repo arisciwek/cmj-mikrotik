@@ -97,3 +97,18 @@ Lalu di SSH router:
 > Strategi: lapisan 1 untuk bencana total (VM rusak/hilang), lapisan 2 untuk
 > rollback config cepat, lapisan 3 untuk arsip teks + recovery manual terpandu.
 
+## Arsitektur disk host (pve)
+
+| Disk | Mount | Peran | Kecepatan |
+|---|---|---|---|
+| `/dev/sdb` (HDD01SAS2TB, 1.8TB ext4) | `/mnt/vmdata` | **Produksi**: VM images, data `/mnt/vmdata/files` (share samba), dump vzdump | SAS (cepat) |
+| `/dev/sda` (vmbackup, 465GB ext4) | `/mnt/vmbackup` (fstab, permanen) | **Backup fisik terpisah** (tanpa RAID — belum ada HDD untuk RAID) | SATA (lambat, offline dari kerja harian) |
+
+> Catatan: VM samba (101) = murni OS, TIDAK menyimpan data. Data ada di
+> `/mnt/vmdata/files` (storage terpusat HDD SAS, di-share via virtiofs → SMB).
+> Kalau HDD SAS dicabut & dipasang di komputer lain, `/mnt/vmdata/files` tetap terbaca.
+> Tanpa RAID, backup rutin adalah satu-satunya proteksi — vzdump & salinan config
+> harus konsisten dijalankan (scheduler harian RouterOS sudah ada; vzdump Proxmox
+> sebaiknya diarahkan ke storage `vmbackup`/SATA agar lintas-disk).
+
+
