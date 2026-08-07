@@ -1,6 +1,6 @@
 # CMJ Office — Perbaikan Internet Client, DNS, dan WiFi (Plan)
 
-> **Status:** DRAFT — belum dieksekusi. Diskusi dulu sampai disepakati.
+> **Status:** PROGRESS — Task 1 (DNS fix) & Task 4 (channel WiFi) **SELESAI & terverifikasi**. Task 2 (IP conflict + pindah bridge ke enp9s0f0) & Task 3 (DHCP reservation AP) **belum dieksekusi** — menunggu konfirmasi jadwal (jam sepi). Task 5 (verifikasi end-to-end) belum tuntas.
 
 **Goal:** Client LAN (via TP-Link AP) bisa konek internet dengan stabil: DNS resolusi jalan, gateway stabil, WiFi tidak drop ke signal 0.
 
@@ -53,6 +53,13 @@
   - **Kabel baru ke TP-Link = TERDETEKSI di enp9s0f0** (Intel 82580 port 1) setelah `ip link set enp9s0f0 up`: link UP 100Mb/s Full Duplex (konsisten — port AP kemungkinan 100M). enp9s0f1 masih kosong.
   - **LOOP RISK**: sekarang ada 2 jalur host→TP-Link (nic1 dan enp9s0f0). JANGAN bridge keduanya ke vmbr1 tanpa STP (loop L2 / broadcast storm). Keputusan pemakaian masih DISKUSI (Opsi A: vmbr1 → enp9s0f0, nic1 jadi cadangan — rekomendasi; Opsi B: simpan enp9s0f0 untuk WAN dedicated/management; Opsi C: dual dengan STP, tidak disarankan).
 
+### T6. DNS router TERVERIFIKASI HIDUP — root cause sebenarnya = DoH (ditemukan 2026-08-07 ~17:36 WIB)
+- **Bukti packet capture** (tcpdump di vmbr0, host satu bridge dengan router): query `192.168.18.12 → 1.1.1.1:53` dan `→ 8.8.8.8:53` KELUAR dan reply MASUK normal (google.com → CNAME forcesafesearch → 216.239.38.120; mikrotik.com → 159.148.172.205). Cache DNS router berisi google.com & mikrotik.com → `/resolve` dan `allow-remote-requests` bekerja.
+- **Root cause asli:** DoH (`use-doh-server=https://cloudflare-dns.com/dns-query`) butuh TCP 443 keluar, TAPI output chain router hanya mengizinkan icmp/udp53/udp123 (+tcp53 setelah fix) dan DROP sisanya → resolver mati selama DoH aktif. Fix Opsi A (DoH off, 2026-08-07) = resolver hidup. Rule `CMJ-allow-tcp-dns-out` kini valid di index 6 (sebelum drop index 4).
+- **Catatan metodologi:** tes `dig -b 192.168.10.1 @192.168.18.12` dari host TIDAK VALID — paket masuk via WAN (vmbr0) dengan source IP LAN, reply router nyasar ke segmen ether2 (LAN) dan tidak kembali ke host → timeout ≠ bukti DNS mati. Verifikasi LAN yang benar: client beneran di 192.168.10.x, ATAU dari host setelah Task 2 (host dapat 192.168.10.250 di segmen LAN).
+- **Observasi:** reply google.com dari 1.1.1.1 berisi CNAME `forcesafesearch.google.com` → indikasi Huawei/ISP intercept & paksa SafeSearch (fitur parental control Huawei ONT). Tidak memutus koneksi, tapi search Google ter-filter. Opsional dicek di web UI Huawei (192.168.18.1) bila mau dimatikan.
+- **Catatan desain:** output chain (by design dari base config) memblokir TCP keluar router selain 53 → fetch/update/DoH dari router tidak jalan. Aman untuk client (client lewat FORWARD chain), hanya catatan untuk kebutuhan admin di masa depan.
+
 ### T4. Temuan sekunder (dicek saat eksekusi)
 - Rule `fasttrack-connection` pertama di forward chain tanpa filter out-interface — aman umumnya, tapi lebih baik dibatasi ke WAN; juga berpotensi mengganggu kalau ada VPN/queue.
 - `admin` user masih aktif (hasil verifikasi lama menunjukkan last-logged-in), `admin-baru` & BLACKLIST belum terkonfirmasi — sesuai section 9-10 check script.
@@ -75,6 +82,8 @@
 ## Step-by-Step Plan
 
 ### Task 1: Fix DNS di RouterOS (bloker utama)
+
+> **STATUS: DONE (2026-08-07)** — DoH dimatikan, rule `CMJ-allow-tcp-dns-out` terpasang (valid, sebelum drop). Resolver terverifikasi hidup: cache berisi google.com & mikrotik.com (bukti tcpdump di T6). Verifikasi dari client LAN beneran masih bagian dari Task 5.
 
 **Objective:** Client LAN bisa resolve nama domain via 192.168.10.1.
 
@@ -235,4 +244,10 @@ jawab: channel 6. TP-Link juga channel 6 (SAMA) → **interferensi ko-channel**,
 5. **Opsi DNS**: setuju Opsi A (matikan DoH) atau mau pertahankan DoH (Opsi B)?
 
 jawab setuju opsi A
+→ **DONE (2026-08-07):** DoH dimatikan, resolver terverifikasi hidup (T6).
+
+6. **WiFi Huawei (SSID admin, 192.168.18.1) mau diapakan?** (kandidat overlap channel dengan TP-Link)
+
+jawab: wifi dari huawei bisa internet; saat ini masih dipakai user untuk keperluan samba.
+→ **KEPUTUSAN (2026-08-07):** WiFi Huawei **TETAP AKTIF** — jangan dimatikan/diubah. Internet-nya jalan dan user masih pakai untuk akses samba (VM101, segmen 192.168.18.x via vmbr0 — reachable dari kedua segmen sudah otomatis: LAN 192.168.10.0/24 → FORWARD → WAN 192.168.18.x). TP-Link tetap di channel 11 (non-overlap dengan Huawei ch 6); tidak ada migrasi paksa user.
 
