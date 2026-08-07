@@ -85,3 +85,15 @@ Lalu di SSH router:
 - File `config-full.rsc` = export mentah (referensi). Jangan di-import langsung
   setelah bootstrap — akan error duplikat (IP/route sudah ada).
 - Scheduler `daily-backup` sudah ada di config → otomatis backup harian ke router.
+
+## Lapisan backup (3 lapis, saling melengkapi)
+
+| Lapisan | Lokasi | Isi | Recovery |
+|---|---|---|---|
+| 1. **Proxmox vzdump** | storage Proxmox: `vzdump-qemu-102-2026_08_07-19_58_18.vma.zst` (54 MB) | Full disk VM (RouterOS + config + lisensi CHR) | Restore VM → langsung jalan, tanpa bootstrap |
+| 2. **RouterOS .backup** | di router (`before-dns-fix.backup`, `backup-*.backup` harian) | Config level RouterOS (termasuk user/password) | `/system backup load` di router yang sama |
+| 3. **Repo GitHub** | `backup/config-full.rsc` + `config-import.rsc` | Teks export (tanpa user) | Reset + bootstrap manual + import |
+
+> Strategi: lapisan 1 untuk bencana total (VM rusak/hilang), lapisan 2 untuk
+> rollback config cepat, lapisan 3 untuk arsip teks + recovery manual terpandu.
+
