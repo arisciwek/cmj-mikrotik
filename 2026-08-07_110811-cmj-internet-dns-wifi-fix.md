@@ -400,3 +400,9 @@ bisa!. terima kasih
 - Cek `/ip dhcp-server lease print`: AP 192.168.10.2 TIDAK ada di lease table → AP pakai IP STATIS (DHCP off, IP manual di AP).
 - Pool DHCP = 192.168.10.100-199, jadi .2 di luar pool → tidak akan pernah di-assign ke device lain. Reservation TIDAK diperlukan.
 - Kalau di masa depan AP diubah ke DHCP, baru tambah reservation (MAC c0:3a:55:ad:5f:c4 → .2).
+
+## VERIFIKASI FINAL — DONE (2026-08-07 malam, Jumat)
+- Client mkt01 via WiFi TP-Link, di ruangan AP (Lantai 1): ping 8.8.8.8 = 10/10, 0% loss, rtt 19.5-30.7ms (satu outlier 92ms = retry radio WiFi, normal). Browser google.com bisa (verifikasi sebelumnya).
+- Server: bridge vmbr1 = enp9s0f0 + tap102i1 (satu uplink, no loop); nic1 down dan tanpa carrier (kabel dicabut); DNS 4 domain resolve (UDP+TCP); router→8.8.8.8 0% loss count=10.
+- SEMUA TASK TUNTAS: Task 1 (DNS) ✓, Task 2 (IP conflict) ✓, Task 4 (channel) ✓, Opsi A kabel ✓, Task 3 skip (AP statis) ✓. T8 (loss di luar ruangan = jangkauan WiFi) tetap sebagai catatan keputusan hardware terpisah.
+- Status plan: SELESAI. Repo ter-push.
