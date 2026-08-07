@@ -1,6 +1,6 @@
 # CMJ Office — Perbaikan Internet Client, DNS, dan WiFi (Plan)
 
-> **Status:** PROGRESS — Task 1 (DNS fix) & Task 4 (channel WiFi) **SELESAI & terverifikasi**. Task 2 (IP conflict + pindah bridge ke enp9s0f0) & Task 3 (DHCP reservation AP) **belum dieksekusi** — menunggu konfirmasi jadwal (jam sepi). Task 5 (verifikasi end-to-end) belum tuntas.
+> **Status:** PROGRESS — Task 1 (DNS fix) & Task 4 (channel WiFi) **SELESAI & terverifikasi**. Task 2 (IP conflict) **SELESAI & terverifikasi** (host vmbr1 → 192.168.10.250, ARP .1 = router, DNS LAN jalan). Task 3 (DHCP reservation AP) & Task 5 (verifikasi end-to-end dari client asli) **belum tuntas**.
 
 **Goal:** Client LAN (via TP-Link AP) bisa konek internet dengan stabil: DNS resolusi jalan, gateway stabil, WiFi tidak drop ke signal 0.
 
@@ -131,6 +131,8 @@ cd ~/cmj-mikrotik && git add scripts/20-fix-dns.rsc && git commit -m "fix: disab
 ```
 
 ### Task 2: Hilangkan IP Conflict vmbr1 (T2)
+
+> **STATUS: DONE & TERVERIFIKASI (2026-08-07 ~17:45 WIB)** — host vmbr1 dipindah `192.168.10.1` → `192.168.10.250` (langsung + persisten di `/etc/network/interfaces`, backup: `interfaces.bak-20260807`). ARP 192.168.10.1 dari host = `bc:24:11:f4:9e:3f` (router ether2). DNS via LAN terverifikasi: `dig -b 192.168.10.250 @192.168.10.1 google.com/github.com/mikrotik.com/cloudflare.com` semua resolve. Catatan: keputusan kabel Opsi A (vmbr1 → enp9s0f0) tetap terbuka, dieksekusi terpisah (butuh jadwal downtime).
 
 **Objective:** Hanya router yang punya 192.168.10.1 di segmen LAN.
 
