@@ -249,5 +249,11 @@ jawab setuju opsi A
 6. **WiFi Huawei (SSID admin, 192.168.18.1) mau diapakan?** (kandidat overlap channel dengan TP-Link)
 
 jawab: wifi dari huawei bisa internet; saat ini masih dipakai user untuk keperluan samba.
-→ **KEPUTUSAN (2026-08-07):** WiFi Huawei **TETAP AKTIF** — jangan dimatikan/diubah. Internet-nya jalan dan user masih pakai untuk akses samba (VM101, segmen 192.168.18.x via vmbr0 — reachable dari kedua segmen sudah otomatis: LAN 192.168.10.0/24 → FORWARD → WAN 192.168.18.x). TP-Link tetap di channel 11 (non-overlap dengan Huawei ch 6); tidak ada migrasi paksa user.
+→ **KEPUTUSAN AWAL (2026-08-07):** WiFi Huawei **TETAP AKTIF** — jangan dimatikan/diubah. Internet-nya jalan dan user masih pakai untuk akses samba (VM101, segmen 192.168.18.x via vmbr0 — reachable dari kedua segmen sudah otomatis: LAN 192.168.10.0/24 → FORWARD → WAN 192.168.18.x). TP-Link tetap di channel 11 (non-overlap dengan Huawei ch 6); tidak ada migrasi paksa user.
+→ **PENYEMPURNAAN KEPUTUSAN (2026-08-07, update user):**
+- **Kondisi saat ini:** SSID Huawei dipakai user untuk samba (VM101) + internet — **DIIZINKAN sementara** (interim).
+- **Kondisi target:** user **HANYA** akses SSID TP-Link (LAN 192.168.10.x → samba + internet). SSID Huawei **khusus admin** — akses darurat ke Proxmox (pve 192.168.18.9 / vmbr0) & router (192.168.18.12).
+- **Interim:** SSID Huawei tetap aktif untuk user **selama TP-Link belum bisa diakses** (vmbr1 belum pindah ke enp9s0f0 / WiFi TP-Link belum terverifikasi stabil dari sisi client).
+- **Langkah migrasi (setelah TP-Link terverifikasi stabil):** ganti password SSID Huawei via web UI 192.168.18.1 → hanya admin yang tahu; user diarahkan pindah ke SSID TP-Link.
+- **Catatan akses admin:** via SSID Huawei masuk segmen 192.168.18.x → pve 192.168.18.9 (Proxmox UI) & router 192.168.18.12 — persis untuk kondisi darurat.
 
