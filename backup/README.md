@@ -90,7 +90,7 @@ Lalu di SSH router:
 
 | Lapisan | Lokasi | Isi | Recovery |
 |---|---|---|---|
-| 1. **Proxmox vzdump** | storage Proxmox: `vzdump-qemu-102-2026_08_07-19_58_18.vma.zst` (54 MB) | Full disk VM (RouterOS + config + lisensi CHR) | Restore VM → langsung jalan, tanpa bootstrap |
+| 1. **Proxmox vzdump** | 3 lokasi (hash cbc2b230...97e, 2026-08-07 19:58): `/mnt/vmdata/dump/` (HDD SAS), `/mnt/vmdata/files/backup/` (share samba), `/mnt/vmbackup/dump/` (sda disk terpisah) | Full disk VM (RouterOS + config + lisensi CHR) | Restore VM → langsung jalan, tanpa bootstrap |
 | 2. **RouterOS .backup** | di router (`before-dns-fix.backup`, `backup-*.backup` harian) | Config level RouterOS (termasuk user/password) | `/system backup load` di router yang sama |
 | 3. **Repo GitHub** | `backup/config-full.rsc` + `config-import.rsc` | Teks export (tanpa user) | Reset + bootstrap manual + import |
 
