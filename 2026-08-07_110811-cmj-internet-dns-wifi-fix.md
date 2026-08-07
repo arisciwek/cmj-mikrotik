@@ -372,3 +372,10 @@ bisa!. terima kasih
                                                                                                                                                                                                                    
      Status tetap: Task 1 & 4 done, Task 2/3/5 menunggu. Mau lanjut eksekusi Task 2 (pindah bridge + hilangkan IP conflict, blip ±30 detik) dan Task 3 (DHCP reservation AP) sekarang, atau tunggu jam sepi?       
       
+## T7. Packet loss 20-25% client→internet + DUP! (ditemukan 2026-08-07 ~18:00 WIB, dari verifikasi client asli)
+- Gejala: client mkt01 (WiFi TP-Link, 192.168.10.101) ping 8.8.8.8 = 20% loss, 1.1.1.1 = 25% loss, google.com = 25% loss + DUP!; ping gateway 192.168.10.1 = 0% loss; ping AP 192.168.10.2 = 0% loss tapi ada DUP!. Browser tetap bisa buka google.com.
+- Isolasi dari sisi server: router→8.8.8.8 count=10 = 0% loss (jalur WAN sehat); conntrack cuma 25 koneksi (tidak penuh); rx_packets enp9s0f0 naik 2246→2248/5s padahal interface tidak di-bridge → AP meneruskan frame ke 2 uplink (nic1 + enp9s0f0) = duplikasi L2 nyata.
+- Hipotesis utama: dua kabel ke AP yang sama (nic1 + enp9s0f0) → duplikasi frame + beban switch AP → drop acak + DUP di sisi WiFi.
+- Tindakan isolasi (2026-08-07 ~18:05, reversible): `ip link set enp9s0f0 down` — jalur kedua dimatikan, AP tetap hidup via nic1. Menunggu tes ulang dari client.
+- Keputusan berikutnya: (a) kalau loss hilang → konfirmasi, eksekusi Opsi A (vmbr1 → enp9s0f0) saat jam sepi, nic1 diistirahatkan; (b) kalau loss tetap → masalah WiFi radio/upstream, investigasi lanjut (channel, firmware AP, power, upstream Huawei/ISP).
+- Catatan metodologi: tes ping host→internet dengan source .250 TIDAK valid (default route host ke 192.168.18.1, bukan lewat router LAN → reply nyasar). Ukuran loss client yang valid hanya dari client asli (mkt01).
