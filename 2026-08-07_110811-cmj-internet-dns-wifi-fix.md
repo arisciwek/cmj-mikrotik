@@ -214,6 +214,7 @@ buka browser -> https://google.com
 1. **Kredensial router**: boleh saya SSH ke 192.168.18.12 (user admin/admin-baru + password), atau Anda yang jalankan perintahnya sendiri (saya kasih perintah persisnya)?
 
 jawab: silahkan anda akses.
+→ **KEPUTUSAN (2026-08-07): saya (agent) yang akses via SSH. Kredensial disimpan di `/root/cmj-router-credentials` (DI LUAR repo, tidak akan di-commit).**
 
 2. **Akses TP-Link**: web UI 192.168.10.2 bisa diakses dari mana? (laptop admin di WiFi user?) Siapa yang pegang passwordnya?
 
@@ -224,6 +225,7 @@ jawab: web UI 192.168.10.2 dipegang admin.
 saat ini hanya ada 1 yang dipakai untuk WAL ke huawei dan LAN ke TP-link.
 jika diperlukan tambah eternet sudah saya pasang 1 lagi agar setting lebih leluasa.
 saya juga masih ada 1 ethernet kosong (ada 4 port di srver itu)
+→ **KEPUTUSAN KABEL (2026-08-07): Opsi A disetujui — vmbr1 pindah dari nic1 → enp9s0f0 (Intel, kabel baru ke TP-Link), nic1 diistirahatkan. enp9s0f1 tetap kosong (cadangan).**
 
 4. **Channel WiFi Huawei (SSID admin)** berapa? (biar TP-Link pilih channel non-overlap)
 
