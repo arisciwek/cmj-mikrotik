@@ -212,7 +212,22 @@ buka browser -> https://google.com
 
 ## Open Questions (perlu jawaban sebelum eksekusi)
 1. **Kredensial router**: boleh saya SSH ke 192.168.18.12 (user admin/admin-baru + password), atau Anda yang jalankan perintahnya sendiri (saya kasih perintah persisnya)?
+
+jawab: silahkan anda akses.
+
 2. **Akses TP-Link**: web UI 192.168.10.2 bisa diakses dari mana? (laptop admin di WiFi user?) Siapa yang pegang passwordnya?
+
+jawab: web UI 192.168.10.2 dipegang admin.
+
 3. **vmbr1 di host dipakai untuk apa?** (monitoring? backup? cuma kebawa config?) — menentukan apakah diganti 192.168.10.250 atau dihapus.
+
+saat ini hanya ada 1 yang dipakai untuk WAL ke huawei dan LAN ke TP-link.
+jika diperlukan tambah eternet sudah saya pasang 1 lagi agar setting lebih leluasa.
+saya juga masih ada 1 ethernet kosong (ada 4 port di srver itu)
+
 4. **Channel WiFi Huawei (SSID admin)** berapa? (biar TP-Link pilih channel non-overlap)
+
 5. **Opsi DNS**: setuju Opsi A (matikan DoH) atau mau pertahankan DoH (Opsi B)?
+
+jawab setuju opsi A
+
