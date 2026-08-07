@@ -1,7 +1,6 @@
 # CMJ - Configuration Verification Result
 # File: mikrotik-configuration-result.md
 # Description: Terminal output from final configuration verification
-# Source: Copied from 10-first-check.md (terminal dump of 99-final-check.rsc execution)
 # Created: 2026-08-07
 # Revision: 1.0
 # Author: CMJ Network Team
