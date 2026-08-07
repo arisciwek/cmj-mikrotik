@@ -228,6 +228,7 @@ saya juga masih ada 1 ethernet kosong (ada 4 port di srver itu)
 4. **Channel WiFi Huawei (SSID admin)** berapa? (biar TP-Link pilih channel non-overlap)
 
 jawab: channel 6. TP-Link juga channel 6 (SAMA) → **interferensi ko-channel**, kandidat kuat penyebab signal drop ke 0. TP-Link harus pindah ke channel 1 atau 11 (non-overlap dengan 6).
+→ **DONE (2026-08-07): TP-Link sudah dipindah ke channel 11** oleh admin (non-overlap dengan Huawei channel 6). Pantau signal beberapa hari untuk konfirmasi perbaikan.
 
 5. **Opsi DNS**: setuju Opsi A (matikan DoH) atau mau pertahankan DoH (Opsi B)?
 
