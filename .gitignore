@@ -1,0 +1,18 @@
+# SSH / deploy keys
+id_rsa
+id_ed25519
+*.pem
+*.key
+
+# Git credentials (repo-local, jangan pernah di-commit)
+.git-credentials
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
