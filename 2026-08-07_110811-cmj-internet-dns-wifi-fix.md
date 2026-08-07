@@ -33,6 +33,26 @@
 - Signal drop ke 0 = masalah sisi radio AP (bukan DHCP/DNS): kemungkinan **auto channel** bertabrakan dengan WiFi admin Huawei, firmware AP, power supply/PoE tidak stabil, atau AP restart.
 - Perlu diagnosa on-site via web UI AP (192.168.10.2) — tidak bisa 100% diperbaiki dari sisi server, tapi bisa dibantu dari sisi konfigurasi.
 
+### T5. NIC host: 2 port bebas + 2 masalah link aktif (ditemukan 2026-08-07)
+- Inventaris fisik host (4 port ethernet):
+  - **Dipakai:** Broadcom BCM5720 dual (tg3) → `nic0` = vmbr0 (192.168.18.9), `nic1` = vmbr1 (192.168.10.1). Keduanya UP.
+  - **Bebas:** Intel 82580 dual (igb) → `enp9s0f0`, `enp9s0f1` — DOWN, tanpa kabel/link, belum ada konfigurasi di /etc/network/interfaces.
+- Masalah link aktif:
+  1. **nic0 & nic1 hanya 100Mb/s** (NIC Gigabit tapi negosiasi 100M) → kabel/port switch/auto-neg bermasalah atau peer memang 100M.
+  2. **nic1 (LAN) flapping** — dmesg menunjukkan link down/up berulang dalam hitungan detik → sumber instabilitas segmen LAN, kandidat penyebab client "kadang putus" di sisi fisik.
+- Peta segmen (hasil cek qm config, 2026-08-07):
+  - vmbr0 (nic0 → Huawei): host mgmt 192.168.18.9 + SEMUA VM (100 nextcloud, 101 samba, 102 mikrotik ether1/WAN, 103 virtualmin, 104 9router).
+  - vmbr1 (nic1 → TP-Link AP?): hanya VM102 ether2 (LAN 192.168.10.1) + host 192.168.10.1 (konflik) + physical nic1.
+- Keputusan kabel (user punya 1 kabel RJ45 cadangan, 2026-08-07):
+  - **Langkah 1 (tanpa kabel baru):** pindahkan kabel LAN dari nic1 → port Intel bebas (enp9s0f1), vmbr1 bridge-ports → enp9s0f1. Keluar dari port BCM yang flapping. Kalau flapping masih terjadi → ganti kabelnya dengan yang cadangan.
+  - **Langkah 2 (pakai kabel cadangan → Huawei):** enp9s0f0 → Huawei LAN port bebas, buat bridge baru vmbr2, pindahkan VM102 net0 (ether1/WAN) ke vmbr2. Router dapat jalur WAN dedicated, terpisah dari NIC management host.
+  - Identifikasi port Intel secara fisik: colok kabel lalu cek `ethtool enp9s0f1 | grep "Link detected"` (atau f0) untuk tahu mana port yang kepasang.
+  - Catatan: pindah bridge VM102 net0 butuh restart VM (downtime singkat); lakukan saat jam sepi.
+- Status fisik TERBARU (setelah user swap kabel nic1 + tambah kabel baru, 2026-08-07 ~13:35 WIB):
+  - **Swap kabel nic1 = SUKSES**: dmesg menunjukkan down di tick 149222, up di 149286, lalu STABIL (tidak ada flapping lagi ±15 menit). Penyebab flapping = kabel lama, bukan port. TP-Link AP (192.168.10.2, c0:3a:55:ad:5f:c4) reachable via vmbr1, 0% loss.
+  - **Kabel baru ke TP-Link = TERDETEKSI di enp9s0f0** (Intel 82580 port 1) setelah `ip link set enp9s0f0 up`: link UP 100Mb/s Full Duplex (konsisten — port AP kemungkinan 100M). enp9s0f1 masih kosong.
+  - **LOOP RISK**: sekarang ada 2 jalur host→TP-Link (nic1 dan enp9s0f0). JANGAN bridge keduanya ke vmbr1 tanpa STP (loop L2 / broadcast storm). Keputusan pemakaian masih DISKUSI (Opsi A: vmbr1 → enp9s0f0, nic1 jadi cadangan — rekomendasi; Opsi B: simpan enp9s0f0 untuk WAN dedicated/management; Opsi C: dual dengan STP, tidak disarankan).
+
 ### T4. Temuan sekunder (dicek saat eksekusi)
 - Rule `fasttrack-connection` pertama di forward chain tanpa filter out-interface — aman umumnya, tapi lebih baik dibatasi ke WAN; juga berpotensi mengganggu kalau ada VPN/queue.
 - `admin` user masih aktif (hasil verifikasi lama menunjukkan last-logged-in), `admin-baru` & BLACKLIST belum terkonfirmasi — sesuai section 9-10 check script.
