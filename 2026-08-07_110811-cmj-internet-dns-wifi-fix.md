@@ -379,3 +379,12 @@ bisa!. terima kasih
 - Tindakan isolasi (2026-08-07 ~18:05, reversible): `ip link set enp9s0f0 down` — jalur kedua dimatikan, AP tetap hidup via nic1. Menunggu tes ulang dari client.
 - Keputusan berikutnya: (a) kalau loss hilang → konfirmasi, eksekusi Opsi A (vmbr1 → enp9s0f0) saat jam sepi, nic1 diistirahatkan; (b) kalau loss tetap → masalah WiFi radio/upstream, investigasi lanjut (channel, firmware AP, power, upstream Huawei/ISP).
 - Catatan metodologi: tes ping host→internet dengan source .250 TIDAK valid (default route host ke 192.168.18.1, bukan lewat router LAN → reply nyasar). Ukuran loss client yang valid hanya dari client asli (mkt01).
+
+## T8. ROOT CAUSE packet loss WiFi = JARAK SINYAL, bukan infrastruktur (2026-08-07 ~18:20 WIB)
+- Tes ulang dari client mkt01:
+  - Di luar ruangan (lantai dasar): loss 20-50%, DUP, rtt bervariasi (1.1.1.1: 50% dari 2 paket)
+  - Di ruangan tempat TP-Link berada: 12/12 received, 0% loss, rtt stabil 18.7-20.3ms
+- Router → internet tetap 0% loss (count=30). Client → gateway 0%. Jadi loss HANYA muncul saat client jauh dari AP.
+- Kesimpulan: loss = keterbatasan jangkauan radio WiFi TP-Link consumer (2.4GHz, antena internal). BUKAN dua kabel (sudah dicoret: enp9s0f0 down tapi loss tetap), BUKAN router/upstream (0% loss dari router), BUKAN konfigurasi.
+- Implikasi: infrastruktur (DNS, IP conflict, DoH, NAT) sudah BERES. Kalau user butuh jangkauan lebih luas → keputusan hardware (AP tambahan / AP lebih baik / reposisi AP), bukan software.
+- Status kabel: nic1 = jalur LAN utama (vmbr1 bridge-ports nic1, MASIH DIPAKAI, jangan dicabut). enp9s0f0 = kabel kedua, admin DOWN (tidak meneruskan data, tidak ada loop; boleh dicabut fisik kalau mau).
