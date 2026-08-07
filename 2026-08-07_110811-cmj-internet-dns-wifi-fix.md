@@ -259,3 +259,92 @@ jawab: wifi dari huawei bisa internet; saat ini masih dipakai user untuk keperlu
 - **Langkah migrasi (setelah TP-Link terverifikasi stabil):** ganti password SSID Huawei via web UI 192.168.18.1 → hanya admin yang tahu; user diarahkan pindah ke SSID TP-Link.
 - **Catatan akses admin:** via SSID Huawei masuk segmen 192.168.18.x → pve 192.168.18.9 (Proxmox UI) & router 192.168.18.12 — persis untuk kondisi darurat.
 
+## Yang perlu Anda lakukan sekarang (paling penting): tes dari client LAN asli (satu laptop/HP yang connect ke WiFi TP-Link):
+###  1. Pastikan dapat IP dari DHCP (192.168.10.100-199)
+Signal Strength: Good
+Link speed: 81 Mb/s
+Security: WPA2
+IPv4 Address: 192.168.10.101
+IPv6 Address: fe80::e8b2:7706:dbe1:3248
+Hardware Address: 20:79:18:B1:45:D6
+Default Route: 192.168.10.1
+DNS: 192.168.10.1
+
+###  2. ping 192.168.10.1 → harus reply (gateway router)
+  mkt01@mkt:~$ ping 192.168.10.2
+PING 192.168.10.2 (192.168.10.2) 56(84) bytes of data.
+64 bytes from 192.168.10.2: icmp_seq=1 ttl=64 time=6.57 ms
+64 bytes from 192.168.10.2: icmp_seq=2 ttl=64 time=6.16 ms
+64 bytes from 192.168.10.2: icmp_seq=3 ttl=64 time=31.6 ms
+64 bytes from 192.168.10.2: icmp_seq=4 ttl=64 time=6.28 ms
+64 bytes from 192.168.10.2: icmp_seq=5 ttl=64 time=4.70 ms
+64 bytes from 192.168.10.2: icmp_seq=6 ttl=64 time=3.93 ms
+64 bytes from 192.168.10.2: icmp_seq=6 ttl=64 time=4.05 ms (DUP!)
+^C^[[A64 bytes from 192.168.10.2: icmp_seq=7 ttl=64 time=16.6 ms
+64 bytes from 192.168.10.2: icmp_seq=8 ttl=64 time=48.7 ms
+64 bytes from 192.168.10.2: icmp_seq=9 ttl=64 time=5.31 ms
+^C
+--- 192.168.10.2 ping statistics ---
+9 packets transmitted, 9 received, +1 duplicates, 0% packet loss, time 8013ms
+rtt min/avg/max/mdev = 3.929/13.387/48.716/14.337 ms
+mkt01@mkt:~$ ping 192.168.10.1
+PING 192.168.10.1 (192.168.10.1) 56(84) bytes of data.
+64 bytes from 192.168.10.1: icmp_seq=1 ttl=64 time=5.18 ms
+64 bytes from 192.168.10.1: icmp_seq=2 ttl=64 time=4.55 ms
+64 bytes from 192.168.10.1: icmp_seq=3 ttl=64 time=1.90 ms
+^C
+--- 192.168.10.1 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2002ms
+rtt min/avg/max/mdev = 1.898/3.876/5.184/1.422 ms
+
+###  3. ping 8.8.8.8 → harus reply (internet)
+
+mkt01@mkt:~$ ping 8.8.8.8
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=115 time=39.8 ms
+64 bytes from 8.8.8.8: icmp_seq=3 ttl=115 time=22.0 ms
+64 bytes from 8.8.8.8: icmp_seq=4 ttl=115 time=19.9 ms
+64 bytes from 8.8.8.8: icmp_seq=5 ttl=115 time=21.9 ms
+^C
+--- 8.8.8.8 ping statistics ---
+5 packets transmitted, 4 received, 20% packet loss, time 4028ms
+rtt min/avg/max/mdev = 19.933/25.918/39.800/8.057 ms
+mkt01@mkt:~$ ping 1.1.1.1
+PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
+64 bytes from 1.1.1.1: icmp_seq=1 ttl=54 time=89.8 ms
+64 bytes from 1.1.1.1: icmp_seq=2 ttl=54 time=66.2 ms
+64 bytes from 1.1.1.1: icmp_seq=3 ttl=54 time=27.2 ms
+^C
+--- 1.1.1.1 ping statistics ---
+4 packets transmitted, 3 received, 25% packet loss, time 3003ms
+rtt min/avg/max/mdev = 27.171/61.065/89.827/25.835 ms
+mkt01@mkt:~$ ping google.com
+PING forcesafesearch.google.com (216.239.38.120) 56(84) bytes of data.
+64 bytes from any-in-2678.1e100.net (216.239.38.120): icmp_seq=1 ttl=115 time=20.3 ms
+64 bytes from any-in-2678.1e100.net (216.239.38.120): icmp_seq=1 ttl=115 time=20.6 ms (DUP!)
+64 bytes from any-in-2678.1e100.net (216.239.38.120): icmp_seq=1 ttl=115 time=21.0 ms (DUP!)
+64 bytes from any-in-2678.1e100.net (216.239.38.120): icmp_seq=1 ttl=115 time=23.2 ms (DUP!)
+64 bytes from any-in-2678.1e100.net (216.239.38.120): icmp_seq=1 ttl=115 time=28.6 ms (DUP!)
+64 bytes from any-in-2678.1e100.net (216.239.38.120): icmp_seq=2 ttl=115 time=30.7 ms
+^C64 bytes from 216.239.38.120: icmp_seq=4 ttl=115 time=41.3 ms
+
+--- forcesafesearch.google.com ping statistics ---
+4 packets transmitted, 3 received, +4 duplicates, 25% packet loss, time 13045ms
+rtt min/avg/max/mdev = 20.269/26.518/41.269/7.114 ms, pipe 2
+
+###  4. nslookup google.com → harus resolve (DNS)
+mkt01@mkt:~$ nslookup google.com
+;; Got SERVFAIL reply from 127.0.0.1, trying next server
+Server:     127.0.0.53
+Address:    127.0.0.53#53
+
+Non-authoritative answer:
+google.com  canonical name = forcesafesearch.google.com.
+Name:   forcesafesearch.google.com
+Address: 216.239.38.120
+;; Got SERVFAIL reply from 127.0.0.1, trying next server
+Name:   forcesafesearch.google.com
+Address: 2001:4860:4802:32::78
+
+###  5. Buka browser → https://google.com
+bisa!. terima kasih
