@@ -15,4 +15,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
-*~
+*~*.backup
+
+*.backup
