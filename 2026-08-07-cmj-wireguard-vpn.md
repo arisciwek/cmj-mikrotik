@@ -178,5 +178,29 @@ disimpan di `wg-peers/` (DI LUAR git, di-ignore).
 - Setelah VPN jalan: distribusi config+QR ke user, verifikasi handshake per peer,
   dokumentasikan AllowedIPs & DNS 10.100.0.2.
 
+### 2026-08-08 lanjutan — FIX AKSES LAN via VPN (user tes dari laptop)
+
+Masalah: user scan QR admin, tunnel Connected, tapi browser "Your connection was interrupted".
+
+Root cause (3 lapis, semuanya diperbaiki):
+1. **Allowed-ips peer di VPS terlalu sempit** (`10.100.0.X/32`) → VPS buang paket
+   ke LAN. Diperluas (live via `wg set` + wg0.conf): peer MikroTik & semua client =
+   `10.100.0.0/24, 192.168.10.0/24, 192.168.18.0/24`.
+2. **Rule forward MikroTik #30 (10.100→192.168.18.0/24) di bawah fasttrack** →
+   counter 0 (paket ditelan fasttrack/drop-invalid). Dipindah ke atas fasttrack:
+   `/ip firewall filter move 30 destination=17`. Counter kini naik (3 pkts).
+3. **VPS tidak punya route ke LAN kantor** (hanya default via venet0) → paket ke
+   192.168.18.x keluar internet, bukan tunnel. Ditambah:
+   `ip route add 192.168.18.0/24 dev wg0` + `192.168.10.0/24 dev wg0`,
+   dan **di-persist di /usr/local/bin/wireguard-up-all.sh** (blok route).
+
+Verifikasi:
+- VPS → 192.168.18.10: 3/4 received ~5.4ms (via tunnel → MikroTik → LAN).
+- MikroTik rule #30: counter 252B/3pkts.
+- Handshake admin & MikroTik segar.
+
+BELUM selesai: tes browser nextcloud.lan dari laptop user (belum dikonfirmasi
+saat sesi ditutup karena ada masalah network/LAN kantor).
+
 ### Tahap 4 (opsional) — file share ke client
 - [ ] Reverse proxy Apache: nextcloud.ciptamasjaya.co.id → 192.168.18.10 via wg0.
