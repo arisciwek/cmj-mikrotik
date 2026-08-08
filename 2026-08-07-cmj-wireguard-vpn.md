@@ -303,3 +303,12 @@ AllowedIPs = 10.100.0.0/24, 192.168.10.0/24
 - Client laptop sudah OK (Proxmox reachable via local LAN)
 - LAN kantor (192.168.10.0/24) via VPN masih gagal → butuh fix di VPS + MikroTik
 - Urutkan: 1) VPS route + allowed-ips, 2) MikroTik forward rule, 3) test ulang
+
+**Catatan tambahan (2 SSID):**
+- Pengguna punya 2 SSID: 192.168.18.1 (Huawei) dan 192.168.10.2 (TP-Link AP)
+- Masalah bukan di SSID config, tapi di routing/firewall MikroTik
+- Perlu di MikroTik:
+  1. Pindahkan aturan `/ip firewall filter` untuk 192.168.10.0/24 dan 192.168.18.0/24 ke **posisi teratas** di chain=forward (di atas fasttrack)
+  2. Tambahkan route di MikroTik: `/ip route add dst-address=192.168.10.0/24 gateway=wg1`
+  3. Pastikan wg1 (10.100.0.2) mengarah ke subnet LAN kantor
+- SSID tidak relevan; perbaikan fokus pada routing/firewall MikroTik
