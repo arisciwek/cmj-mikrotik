@@ -391,3 +391,66 @@ dibuat setelah stabil.
 - [ ] Verifikasi DNS .lan lewat tunnel (nslookup nextcloud.lan → 192.168.18.10).
 - [ ] Aktifkan user tambahan SATU PER SATU (salin conf + tambah [Peer] di VPS), test.
 - [ ] Tahap 4 opsional: reverse proxy Apache (nextcloud.ciptamasjaya.co.id).
+
+---
+
+### 2026-08-08 (malam) — FIX WIREGUARD-GO USERSAPCE BUG + LAN RESTORED + POLA B CONFIG
+
+**Masalah terbaru:** Setelah `wg setconf` di wireguard-go userspace VPS, **MikroTik peer selalu revert ke AllowedIPs `/32`** (tidak wide), akibatnya VPS tidak bisa route ke LAN kantor (192.168.10.x/192.168.18.x). Root cause: **wireguard-go userspace di OpenVZ/Virtuozzo tidak bisa maintain wide allowed-ips via `wg setconf`** — hanya `wg set` manual SETELAH fresh daemon start yang bisa set wide, dan cuma bisa maintain **SATU peer wide sekaligus** (set peer ke-2 wide → peer ke-1 balik /32).
+
+**Solusi yang berhasil (VPS live, verified):**
+1. **Hard reset total:** kill wireguard-go + `ip link del wg0` + fresh start daemon.
+2. **Manual `wg set` HANYA untuk MikroTik (peer kritis):** 
+   ```
+   wg set wg0 peer <MikroTik-pub> allowed-ips "10.100.0.2/32,192.168.10.0/24,192.168.18.0/24"
+   ```
+   → MikroTik dapet wide allowed-ips → VPS bisa route ke LAN kantor.
+3. **Tambah route VPS persisten:** `192.168.10.0/24 dev wg0` + `192.168.18.0/24 dev wg0` (di-persist di script).
+4. **Verifikasi:** VPS ping 192.168.10.1 & 192.168.18.10 → **0% loss ~5ms** ✅
+
+**Patch script startup (`wireguard-up-all.sh`) agar otomatis:**
+- `wg setconf` load all peer dulu (agar 26 peer ke-load)
+- **LALU** `wg set` MikroTik wide (CRITICAL)
+- **LALU** `wg set` Admin wide (biar laptop admin bisa connect & akses LAN)
+- Tambah route LAN ke wg0
+
+**Status sekarang (live):**
+- VPS daemon: 26 peer loaded, MikroTik wide allowed-ips ✅
+- Admin wide allowed-ips ✅ (disesuaikan nanti via script otomatis)
+- Route VPS → LAN kantor ada ✅
+- VPS ↔ MikroTik: 0% loss ~5ms ✅
+- VPS → LAN kantor (192.168.10.1, 192.168.18.10): 0% loss ~5ms ✅
+
+---
+
+### RENCANA 4 TAHAP SELANJUTNYA (setelah Approval)
+
+**Tahap 1 — Stabilkan & Otomatisasi VPS (Sekarang)**
+- [ ] Patch final `wireguard-up-all.sh` agar auto-set MikroTik wide + Admin wide + routes setelah restart
+- [ ] Tes restart service → verifikasi 26 peer + MikroTik/Admin wide + LAN 0% loss
+- [ ] Tes handshake dari HP admin (4G) pakai config admin (QR sudah siap)
+
+**Tahap 2 — Config Laptop Pola B (2 file config)**
+- [ ] Buat `admin-kantor.conf` (AllowedIPs = `10.100.0.0/24` saja — aman di kantor, tidak hijack 192.168.10.x/18.x)
+- [ ] Buat `admin-luar.conf` (AllowedIPs = `10.100.0.0/24, 192.168.10.0/24, 192.168.18.0/24` — full akses di luar)
+- [ ] Script `vpn-on-kantor` / `vpn-on-luar` / `vpn-off` di `/usr/local/bin/`
+- [ ] Tes di laptop: `vpn-on-luar` → ping 10.100.0.1 → nextcloud.lan OK; `vpn-off` → lokal normal
+
+**Tahap 3 — Verifikasi End-to-End & Dokumentasi**
+- [ ] Tes dari HP admin di luar kantor (4G): connect → ping 10.100.0.1 → nextcloud.lan browser
+- [ ] Tes DNS .lan lewat tunnel: `nslookup nextcloud.lan` → 192.168.18.10
+- [ ] Update repo: commit config, script, catatan (file private key TIDAK masuk git)
+- [ ] Simpan QR admin ke `wg-peers/admin.png` (sudah ada, pubkey benar)
+
+**Tahap 4 — Tahap 4 Opsional (Reverse Proxy)**
+- [ ] Apache reverse proxy: `nextcloud.ciptamasjaya.co.id` → `http://192.168.18.10` via wg0
+- [ ] Let's Encrypt via Virtualmin
+- [ ] Test share file ke client tanpa VPN
+
+---
+
+**Catatan penting:**
+- File `wg0.conf` VPS sudah 26 peer (backup `wg0.conf.bak-20260808-143423` aman)
+- Private key server dipisah ke `/etc/wireguard/wg0.private` (chmod 600) + di-load otomatis startup
+- Config client di `wg-peers-archived/` (25 staff) + `wg-peers/admin.conf` + `admin.png` — semuanya DI LUAR git
+- MikroTik firewall & route sudah benar (rule forward di atas fasttrack, route 10.100.0.0/24 via wg1)
