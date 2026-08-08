@@ -202,5 +202,24 @@ Verifikasi:
 BELUM selesai: tes browser nextcloud.lan dari laptop user (belum dikonfirmasi
 saat sesi ditutup karena ada masalah network/LAN kantor).
 
+### 2026-08-08 (lanjutan) — FIX Nextcloud trusted_domains + DNS .lan
+
+Gejala user: WiFi Huawei `http://192.168.18.100` → "Akses melalui domain tidak
+terpercaya"; `http://nextcloud.lan` → DNS_PROBE_FINISHED_NXDOMAIN; TP-Link juga
+"domain tidak terpercaya".
+
+Root cause & fix:
+1. **Nextcloud trusted_domains** hanya `'192.168.1.108'` (IP saat install dulu;
+   sekarang Nextcloud = 192.168.18.10). Diperbaiki (config.php VM100):
+   `['192.168.1.108', '192.168.18.10', 'nextcloud.lan', 'localhost']`.
+   `overwrite.cli.url` → `http://nextcloud.lan`. Verified via php (trusted keluar).
+   Redirect OK: semua host → /index.php/login (302).
+2. **DNS .lan di WiFi Huawei** NXDOMAIN → Huawei paksa DNS ISP (catatan lama);
+   solusinya DNS manual 192.168.18.12 di perangkat, atau pakai WiFi TP-Link.
+   Static nextcloud.lan → 192.168.18.10 sudah ada di MikroTik (ip dns static).
+
+Status: menunggu tes ulang user (nextcloud.lan via TP-Link / 192.168.18.10 via
+Huawei).
+
 ### Tahap 4 (opsional) — file share ke client
 - [ ] Reverse proxy Apache: nextcloud.ciptamasjaya.co.id → 192.168.18.10 via wg0.
