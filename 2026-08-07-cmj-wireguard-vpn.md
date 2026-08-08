@@ -141,4 +141,42 @@ Verifikasi: peer aktif (handshake), ping 10.100.0.1 dari router, ping 192.168.18
 - Staff bisa reach 192.168.18.x termasuk pve (.9) — diterima untuk kantor
   kecil; pemisahan staff/admin VPN = pengembangan berikutnya.
 
-## Log eksekusi (diisi setelah approve)
+## Log eksekusi
+
+### 2026-08-08 — TAHAP 1–2 SELESAI + FIX KONEKSI (sesi siang)
+
+**Tahap 1 — VPS hub** stroked hari sebelumnya; verifikasi ulang pagi ini:
+- wireguard-go v0.0.20250522 di /usr/local/bin, /dev/net/tun ada (tmpfiles).
+- Keypair server: pub `Darq+Zsh341FE56vSKg3EVV8oQAGPr5dTCkSqbcyFgc=` (PRIVATE FILE:
+  /etc/wireguard/privatekey). **GANTI PENTING: pubkey yang benar = Darq... (bukan bpqF...)**.
+- firewalld: UDP 48231, masquerade ON; layanan lama (22,25,53,80,110,143,443,465,
+  587,993,995,20000) tetap jalan.
+
+**Root cause koneksi putus (ditemukan & diperbaiki):**
+1. `wg0.conf` di VPS kehilangan `[Interface]` (ListenPort) — port meleset ke acak.
+2. Pubkey server di 25 file client = SALAH (`BfbSK1U2...`) → seharusnya `Darq+Zsh341...`
+   (kunci aktif VPS). SEMUA file client sudah dikoreksi + QR admin di-regenerate.
+3. `wg setconf` HANG di OpenVZ userspace (netlink ack tak kembali) — perubahan TETAP
+   ter-apply, tapi proses tidak return. Solusi: `wireguard-up.service` (Type=oneshot,
+   RemainAfterExit) menjalankan script `/usr/local/bin/wireguard-up-all.sh` yang
+   memanggil `timeout 6 wg setconf` + abaikan exit + verifikasi.
+4. Peer MikroTik (10.100.0.2) kini ada di wg0.conf (26 peer total).
+
+**Status final (verified):**
+```
+unit wireguard-up.service : active
+listen-port               : 48231
+peers                     : 26 (10.100.0.2 office + 25 staff)
+MikroTik -> 10.100.0.1    : 0% loss ~4.8ms
+VPS      -> 10.100.0.2    : 0% loss ~4.9ms
+```
+Catatan: `generate_wg_peers.sh` telah di-fix (VPS_PUBLIC_KEY). File client + QR
+disimpan di `wg-peers/` (DI LUAR git, di-ignore).
+
+### Tahap 3 — Provisioning staff (LANJUTAN)
+- Konfigurasi 25 peer sudah digenerate (wg-peers/, QR per user via qrencode).
+- Setelah VPN jalan: distribusi config+QR ke user, verifikasi handshake per peer,
+  dokumentasikan AllowedIPs & DNS 10.100.0.2.
+
+### Tahap 4 (opsional) — file share ke client
+- [ ] Reverse proxy Apache: nextcloud.ciptamasjaya.co.id → 192.168.18.10 via wg0.

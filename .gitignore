@@ -19,3 +19,8 @@ Thumbs.db
 
 # Backup binary RouterOS (berisi kredensial, jangan pernah di-commit)
 *.backup
+
+# WireGuard peer configs (private key + PSK, jangan pernah di-commit)
+wg-peers/
+wg-peers/*.conf
+wg-peers/*.png
