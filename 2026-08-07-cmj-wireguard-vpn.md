@@ -123,6 +123,43 @@ Verifikasi: peer aktif (handshake), ping 10.100.0.1 dari router, ping 192.168.18
   TANPA VPN, TANPA install apa pun.
 - Ini menyelesaikan: share file besar ke client tanpa Google Drive.
 
+### 2026-08-08 (lanjutan) — AKAR MASALAH ALLOWED-IPS VPS (semua peer) + FIX
+
+**Gejala:** laptop admin handshake OK tapi ping 10.100.0.1 / 10.100.0.2 / 192.168.10.1
+semua 100% loss (server-side sudah fix, tapi client tetap gagal).
+
+**Root cause (di VPS, bukan laptop):**
+1. wg0.conf: semua peer client `AllowedIPs = 10.100.0.X/32` (cuma IP VPN sendiri);
+   peer MikroTik juga `/32` di file (padahal live sempat luas via `wg set` manual).
+2. `wg setconf` di wireguard-go userspace buggy: **26 peer ter-set, tapi hanya peer
+   PERTAMA yang dapat AllowedIPs luas; sisanya kembali /32** (netlink timeout 6s
+   memotong urutan). Jadi setelah tiap restart/reboot, semua peer client balik
+   sempit → paket ke LAN dibuang VPS.
+3. Verifikasi: setelah `wg setconf`, `wg show` = 26 peer, 1 luas / 25 sempit.
+
+**Fix yang dilakukan (VPS produksi, backup dulu):**
+- Backup `/etc/wireguard/wg0.conf.bak-20260808` (4254 bytes, versi lama)
+- Regenerate wg0.conf: semua 26 peer `AllowedIPs = 10.100.0.X/32, 192.168.10.0/24, 192.168.18.0/24`
+- Apply: `wg set` per-peer dengan jeda/retry (bukan setconf massal) —
+  **`wg set` juga timeout (exit 124) tapi apply tetap jalan**; verifikasi per-peer
+  dengan `wg show wg0 allowed-ips` dan retry sampai luas.
+- Route VPS (192.168.10.0/24 & 192.168.18.0/24 dev wg0) sudah di persist di
+  wireguard-up-all.sh.
+- **Catatan penting: kalau wireguard-up-all.sh dijalankan ulang, peer client akan
+  BALIK /32 lagi** (karena skrip pakai `wg setconf` yang buggy). Perlu update skrip
+  ke loop `wg set` per-peer, atau tunggu fix script /tmp/fix_peers.py (background)
+  yang apply per-peer deterministik, lalu pertimbangkan mengganti setconf di skrip
+  dengan loop wg-set.
+
+**Verifikasi akhir (nanti setelah fix script selesai):**
+- `wg show wg0` → 26 peer, SEMUA allowed-ips luas (10.100.0.X/32 + LAN)
+- VPS ping 10.100.0.2 (MikroTik) & 192.168.10.1 & 192.168.18.10 → 0% loss
+- Client laptop: connect → ping 10.100.0.1 / 192.168.10.1 → OK
+
+**PENTING untuk masa depan:** Jangan gunakan `wg setconf` sendirian di skrip —
+gunakan per-peer `wg set` + verifikasi. Ini bug wireguard-go userspace yang khas
+OpenVZ/Virtuozzo (netlink ack tidak kembali untuk operasi besar).
+
 ## Verifikasi keseluruhan
 
 - VPS: `wg show` semua peer handshake; `ping 10.100.0.2` (office).
@@ -312,3 +349,45 @@ AllowedIPs = 10.100.0.0/24, 192.168.10.0/24
   2. Tambahkan route di MikroTik: `/ip route add dst-address=192.168.10.0/24 gateway=wg1`
   3. Pastikan wg1 (10.100.0.2) mengarah ke subnet LAN kantor
 - SSID tidak relevan; perbaikan fokus pada routing/firewall MikroTik
+
+---
+
+### 2026-08-08 (sore) — PEMANGKASAN KE PEER INTI (2 peer saja) + FIX PRIVATE KEY
+
+Keputusan user: jangan buat banyak user dulu — cukup 1 (admin) untuk tes; user tambahan
+dibuat setelah stabil.
+
+**Yang dilakukan:**
+
+1. **Config VPS di-pangkas ke 2 peer**: MikroTik office (10.100.0.2) + admin (10.100.0.10).
+   25 peer staff DIHAPUS dari wg0.conf (bukan disable). File config staff (27 file:
+   `*.conf` + `*.png` + `vps-hub-peers.conf`) dipindah ke `wg-peers-archived/`
+   (local, DI LUAR git — private key aman, bisa dipakai lagi nanti).
+2. **ROOT CAUSE baru ditemukan**: daemon wireguard-go berjalan TANPA private key —
+   `wg show wg0 public-key` = `(none)` — karena `wg-apply-peers.py` hanya apply *peer*,
+   tidak pernah set `[Interface] PrivateKey`. Akibatnya semua handshake ditolak
+   (VPS terima paket tapi tak membalas).
+   **Fix (persisten)**: private key diekstrak ke `/etc/wireguard/wg0.private` (chmod 600),
+   dan `wireguard-up-all.sh` (+ `wg-apply-peers.py`) kini memanggil
+   `wg set $IF private-key /etc/wireguard/wg0.private` + `listen-port 48231` sebelum
+   apply peers → daemon restart tidak akan kehilangan kunci.
+3. **Fix bug listen-port acak** (sempat jadi 60721/59511/41306 dll): guard
+   `wg set wg0 listen-port 48231` di script startup + wg-apply-peers.py.
+4. **Verifikasi akhir:**
+   - VPS: config 2 peer, listen 48231, pubkey `Darq+Zsh341...`, peers=2,
+     ping 10.100.0.2 → 0% loss ~4.7ms.
+   - MikroTik: rx=876 tx=17.7KiB, last-handshake segar (<2m).
+
+**Catatan kunci untuk sesi mendatang:**
+- `wg-apply-peers.py` TIDAK menyentuh Interface → JANGAN bergantung pada `wg setconf` saja;
+  selalu pasang private-key + listen-port di startup script.
+- File config client di `wg-peers-archived/` masih valid (pubkey server sudah benar),
+  tinggal salin ke `wg-peers/` + tambah peer di wg0.conf bila mau aktifkan user baru.
+- Proses `set_peers_slow.py` yang pernah jalan tidak boleh dibiarkan (mengembalikan peer
+  staff ke daemon); pastikan mati sebelum melakukan perubahan konfig.
+
+### Langkah berikutnya (setelah VPN stabil)
+- [ ] Tes browser nextcloud.lan dari laptop/HP lewat VPN (admin.conf).
+- [ ] Verifikasi DNS .lan lewat tunnel (nslookup nextcloud.lan → 192.168.18.10).
+- [ ] Aktifkan user tambahan SATU PER SATU (salin conf + tambah [Peer] di VPS), test.
+- [ ] Tahap 4 opsional: reverse proxy Apache (nextcloud.ciptamasjaya.co.id).

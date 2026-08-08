@@ -24,3 +24,6 @@ Thumbs.db
 wg-peers/
 wg-peers/*.conf
 wg-peers/*.png
+wg-peers-archived/
+wg-peers-archived/*.conf
+wg-peers-archived/*.png
