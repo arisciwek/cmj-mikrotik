@@ -223,3 +223,83 @@ Huawei).
 
 ### Tahap 4 (opsional) — file share ke client
 - [ ] Reverse proxy Apache: nextcloud.ciptamasjaya.co.id → 192.168.18.10 via wg0.
+
+---
+
+### 2026-08-08 (lanjutan) — FIX CLIENT LAPTOP ROUTE HIJACK + DIAGNOSA TUNNEL
+
+**Masalah awal:** User install WireGuard di laptop (IP 192.168.18.50), connect tunnel, tapi Proxmox 192.168.18.9 timeout.
+
+**Root cause:** `admin.conf` AllowedIPs include `192.168.18.0/24`. wg-quick install route ke tunnel untuk subnet ini. Laptop sudah di subnet itu fisik via wlp2s0 (192.168.18.50/24). Traffic ke Proxmox/MikroTik masuk tunnel -> tunnel mati -> timeout.
+
+**Fix client:** Hapus `192.168.18.0/24` dari AllowedIPs di `/home/mkt01/proxmox/proxmox/admin.conf`:
+```
+AllowedIPs = 10.100.0.0/24, 192.168.10.0/24
+```
+
+**Hasil verifikasi client (setelah fix):**
+| Target | Status |
+|--------|--------|
+| 192.168.18.1 (Huawei modem) | ✅ OK |
+| 192.168.18.9 (Proxmox) | ✅ OK |
+| 192.168.18.12 (MikroTik WAN) | ✅ OK |
+| 10.100.0.1 (VPS hub) | ❌ FAIL - handshake OK, ping 100% loss |
+| 192.168.10.1 (MikroTik LAN) | ❌ FAIL - route via tunnel tapi server-side issue |
+
+**Status WireGuard tunnel (client):**
+```
+interface: wg0
+  peer: Darq+Zsh341FE56vSKg3EVV8oQAGPr5dTCkSqbcyFgc=
+    endpoint: 103.56.149.231:48231
+    allowed ips: 10.100.0.0/24, 192.168.10.0/24
+    latest handshake: 7 seconds ago
+    transfer: 736 B received, 6.47 KiB sent
+    persistent keepalive: every 25 seconds
+```
+→ Handshake OK, tunnel up, tapi tidak bisa reach LAN kantor.
+
+**Diagnosa server-side (butuh admin akses VPS 103.56.149.231):**
+
+1. **VPS routing** - Cek route ke LAN kantor via wg0:
+   ```bash
+   ip route | grep wg0
+   # harus ada:
+   # 192.168.18.0/24 dev wg0
+   # 192.168.10.0/24 dev wg0
+   ```
+
+2. **VPS WireGuard allowed-ips peer** - Pastikan peer MikroTik (10.100.0.2) & client allow LAN:
+   ```bash
+   wg show wg0
+   # peer 10.100.0.2 allowed-ips harus include 192.168.10.0/24, 192.168.18.0/24
+   ```
+
+3. **Reload routes VPS** (persist di startup script):
+   ```bash
+   /usr/local/bin/wireguard-up-all.sh
+   # script harus tambahkan route 192.168.10.0/24 & 192.168.18.0/24 dev wg0
+   ```
+
+**Diagnosa MikroTik (butuh akses WinBox/SSH):**
+
+1. **Forward rule untuk 192.168.10.0/24** - Cek urutan di chain=forward:
+   ```bash
+   /ip firewall filter print where chain=forward
+   # rule allow 10.100.0.0/24 -> 192.168.10.0/24 harus DI ATAS fasttrack
+   ```
+
+2. **Route MikroTik ke VPS** - Pastikan 10.100.0.0/24 via wg1:
+   ```bash
+   /ip route print where dst-address=10.100.0.0/24
+   ```
+
+**Config file final (client laptop):**
+```
+/home/mkt01/proxmox/proxmox/admin.conf
+AllowedIPs = 10.100.0.0/24, 192.168.10.0/24
+```
+
+**Catatan untuk admin kantor:**
+- Client laptop sudah OK (Proxmox reachable via local LAN)
+- LAN kantor (192.168.10.0/24) via VPN masih gagal → butuh fix di VPS + MikroTik
+- Urutkan: 1) VPS route + allowed-ips, 2) MikroTik forward rule, 3) test ulang
