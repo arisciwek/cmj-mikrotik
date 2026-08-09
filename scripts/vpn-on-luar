@@ -3,7 +3,13 @@
 # Install di laptop (Linux): sudo cp vpn-* /usr/local/bin/ && sudo chmod +x /usr/local/bin/vpn-*
 # Config: letakkan admin-kantor.conf & admin-luar.conf di ~/wg/ (bukan /etc/wireguard,
 #         supaya tidak bentrok dengan wg0 systemd)
-CONF_DIR="$HOME/wg"
+# Catatan: sudo mereset $HOME ke /root — selalu pakai home user asli (SUDO_USER).
+if [ -n "${SUDO_USER:-}" ]; then
+  REAL_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+else
+  REAL_HOME="$HOME"
+fi
+CONF_DIR="$REAL_HOME/wg"
 
 cmd_kantor() {
   sudo wg-quick down wg0 2>/dev/null || true
