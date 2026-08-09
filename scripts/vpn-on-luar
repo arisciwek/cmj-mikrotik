@@ -1,15 +1,20 @@
 #!/bin/bash
 # vpn-on-kantor / vpn-on-luar / vpn-off — CMJ WireGuard Pola B (laptop admin)
 # Install di laptop (Linux): sudo cp vpn-* /usr/local/bin/ && sudo chmod +x /usr/local/bin/vpn-*
-# Config: letakkan admin-kantor.conf & admin-luar.conf di ~/wg/ (bukan /etc/wireguard,
-#         supaya tidak bentrok dengan wg0 systemd)
-# Catatan: sudo mereset $HOME ke /root — selalu pakai home user asli (SUDO_USER).
-if [ -n "${SUDO_USER:-}" ]; then
-  REAL_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-else
-  REAL_HOME="$HOME"
+# Config: taruh admin-kantor.conf & admin-luar.conf DI FOLDER YANG SAMA dengan script ini.
+#         (Kalau tidak ada, baru fallback ke ~/wg/ user asli.)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONF_DIR="$SCRIPT_DIR"
+
+if [ ! -f "$CONF_DIR/admin-kantor.conf" ] || [ ! -f "$CONF_DIR/admin-luar.conf" ]; then
+  # fallback: home user asli (sudo mereset $HOME ke /root, pakai SUDO_USER)
+  if [ -n "${SUDO_USER:-}" ]; then
+    REAL_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+  else
+    REAL_HOME="$HOME"
+  fi
+  CONF_DIR="$REAL_HOME/wg"
 fi
-CONF_DIR="$REAL_HOME/wg"
 
 cmd_kantor() {
   sudo wg-quick down wg0 2>/dev/null || true
