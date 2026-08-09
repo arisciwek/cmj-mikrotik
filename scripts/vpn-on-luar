@@ -42,11 +42,17 @@ cmd_luar() {
   sudo cp "$CONF_DIR/admin-luar.conf" /etc/wireguard/wg0.conf
   sudo chmod 600 /etc/wireguard/wg0.conf
   sudo wg-quick up wg0
+  # DNS .lan via tunnel: resolvconf di Ubuntu modern tidak aktif
+  # (/etc/resolv.conf dikelola systemd-resolved) -> set via resolvectl
+  sudo resolvectl dns wg0 10.100.0.2 2>/dev/null || true
+  sudo resolvectl domain wg0 '~lan' 2>/dev/null || true
   echo "VPN ON (mode LUAR): 10.100.0.0/24 + LAN kantor lewat tunnel"
 }
 
 cmd_off() {
   sudo wg-quick down wg0 2>/dev/null || true
+  sudo resolvectl dns wg0 '' 2>/dev/null || true
+  sudo resolvectl domain wg0 '' 2>/dev/null || true
   echo "VPN OFF"
 }
 
