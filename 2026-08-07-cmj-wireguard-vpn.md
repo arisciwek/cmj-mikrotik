@@ -447,9 +447,31 @@ dibuat setelah stabil.
 - [ ] Let's Encrypt via Virtualmin
 - [ ] Test share file ke client tanpa VPN
 
+### 2026-08-09 (malam) — TAHAP 1 VERIFIKASI + TAHAP 2 POLA B SELESAI
+
+**Tahap 1 — VPS stabil (verified live):**
+- Script `/usr/local/bin/wireguard-up-all.sh` v3 sudah benar: setconf load semua peer → `wg set` MikroTik wide → `wg set` admin wide → route LAN.
+- **Konfirmasi bug wireguard-go userspace**: hanya SATU peer wide yang bisa bertahan. Set admin wide → MikroTik balik /32 (terbukti live). Set MikroTik wide → admin balik /32.
+- **Keputusan (solusi simpel)**: MikroTik = peer wide (kritis, VPS→LAN), admin dibiarkan /32 — secara teori cukup karena balasan ke 10.100.0.10 hanya butuh allowed-ips /32.
+- Verifikasi live (semua 0% loss):
+  - VPS → 192.168.18.10 (LAN) : 0% loss ~5.5ms ✅
+  - VPS → 10.100.0.2 (MikroTik) : 0% loss ~5ms ✅
+  - VPS → 10.100.0.10 (laptop admin) : 0% loss ~14-49ms ✅
+
+**Tahap 2 — Pola B config + script (selesai):**
+- `/root/cmj-mikrotik/wg-peers/admin-kantor.conf` — AllowedIPs = `10.100.0.0/24` saja (dipakai DI KANTOR, tidak hijack route LAN fisik)
+- `/root/cmj-mikrotik/wg-peers/admin-luar.conf` — AllowedIPs = `10.100.0.0/24, 192.168.10.0/24, 192.168.18.0/24` (dipakai DI LUAR kantor, full via tunnel)
+- Identik dengan admin.conf lama (diff kosong) — konsisten.
+- Script laptop: `scripts/vpn-on-kantor`, `scripts/vpn-on-luar`, `scripts/vpn-off` (di-install ke /usr/local/bin di laptop, config di ~/wg/).
+- Generator Pola B (`/root/wg-tools/generate_pola_b.sh`) berisi private key → DI LUAR repo git.
+
+**Sisa (Tahap 3 — butuh user di laptop):**
+- [ ] Tes dari laptop: `vpn-on-kantor` → ping 10.100.0.1, ping 192.168.10.1, buka nextcloud.lan
+- [ ] Tes dari luar (4G): `vpn-on-luar` → ping 10.100.0.1, ping 192.168.18.10, buka nextcloud.lan
+- [ ] nslookup nextcloud.lan → 192.168.18.10
+
 ---
 
-**Catatan penting:**
 - File `wg0.conf` VPS sudah 26 peer (backup `wg0.conf.bak-20260808-143423` aman)
 - Private key server dipisah ke `/etc/wireguard/wg0.private` (chmod 600) + di-load otomatis startup
 - Config client di `wg-peers-archived/` (25 staff) + `wg-peers/admin.conf` + `admin.png` — semuanya DI LUAR git
