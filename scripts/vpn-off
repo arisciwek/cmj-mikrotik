@@ -16,6 +16,19 @@ if [ ! -f "$CONF_DIR/admin-kantor.conf" ] || [ ! -f "$CONF_DIR/admin-luar.conf" 
   CONF_DIR="$REAL_HOME/wg"
 fi
 
+# Pastikan config ketemu; kalau tidak, berhenti dengan pesan jelas
+# (JANGAN lanjut ke wg-quick dengan wg0.conf lama — mode jadi salah diam-diam)
+MISSING=""
+[ -f "$CONF_DIR/admin-kantor.conf" ] || MISSING="$MISSING admin-kantor.conf"
+[ -f "$CONF_DIR/admin-luar.conf" ]   || MISSING="$MISSING admin-luar.conf"
+if [ -n "$MISSING" ]; then
+  echo "ERROR: config tidak ditemukan:$MISSING" >&2
+  echo "       dicari di: $CONF_DIR (folder script: $SCRIPT_DIR)" >&2
+  echo "       Letakkan admin-kantor.conf & admin-luar.conf di folder yang sama" >&2
+  echo "       dengan script ini, atau di ~/wg/." >&2
+  exit 1
+fi
+
 cmd_kantor() {
   sudo wg-quick down wg0 2>/dev/null || true
   sudo cp "$CONF_DIR/admin-kantor.conf" /etc/wireguard/wg0.conf
