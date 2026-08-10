@@ -1,4 +1,4 @@
-# 2026-08-10 06:20:58 by RouterOS 7.23.1
+# 2026-08-10 10:49:26 by RouterOS 7.23.1
 # software id = 01MT-APIL
 #
 /interface ethernet
@@ -117,8 +117,8 @@ add action=accept chain=forward dst-address=192.168.10.0/24 src-address=\
 add action=accept chain=forward dst-address=10.100.0.0/24 src-address=\
     192.168.10.0/24
 /ip firewall nat
-add action=dst-nat chain=dstnat comment=CMJ-smtp-relay-to-VPS dst-port=25 \
-    protocol=tcp to-addresses=10.100.0.1 to-ports=25
+add action=dst-nat chain=dstnat comment=CMJ-smtp-relay-to-VPS disabled=yes \
+    dst-port=25 protocol=tcp to-addresses=10.100.0.1 to-ports=25
 add action=masquerade chain=srcnat out-interface-list=WAN src-address=\
     192.168.10.0/24
 add action=masquerade chain=srcnat out-interface-list=WAN src-address=\
